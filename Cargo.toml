@@ -1,0 +1,14 @@
+[package]
+name = "jitRegistry"
+description = "a container registry solution"
+version = "0.0.1"
+authors = ["Brian A Barnes-Cocke <bababarnescocke@gmail.com>"]
+edition = "2021"
+homepage = "https://github.com/babarnescocke/jitRegistry"
+repository = "https://github.com/babarnescocke/jitRegistry"
+readme = "README.md"
+license = "LICENSE.txt"
+
+[dependencies]
+structopt = "0.3.26"
+tokio = "1.17.0"
