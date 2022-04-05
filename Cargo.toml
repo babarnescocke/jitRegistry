@@ -1,14 +1,18 @@
 [package]
 name = "jitRegistry"
-description = "a container registry solution"
+description = "a container registry-like solution"
 version = "0.0.1"
 authors = ["Brian A Barnes-Cocke <bababarnescocke@gmail.com>"]
 edition = "2021"
 homepage = "https://github.com/babarnescocke/jitRegistry"
 repository = "https://github.com/babarnescocke/jitRegistry"
 readme = "README.md"
-license = "LICENSE.txt"
+license_file = "LICENSE.txt"
+keywords = ["container", "cli", "network", "server"]
+categories = ["command-line-utilities", "web-programming::http-server"]
+
 
 [dependencies]
 structopt = "0.3.26"
 tokio = "1.17.0"
+oci-image-spec = "0.1.0"
