@@ -11,8 +11,11 @@ license-file = "LICENSE.txt"
 keywords = ["container", "cli", "network", "server"]
 categories = ["command-line-utilities", "web-programming::http-server"]
 
-
 [dependencies]
 structopt = "0.3.26"
-tokio = "1.17.0"
+actix-web = "4.0"
 oci-image-spec = "0.1.0"
+
+
+[profile.release]
+strip = "symbols"
