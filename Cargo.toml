@@ -16,6 +16,5 @@ structopt = "0.3.26"
 actix-web = "4.0"
 oci-image-spec = "0.1.0"
 
-
 [profile.release]
 strip = "symbols"
