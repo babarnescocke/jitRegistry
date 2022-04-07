@@ -1,5 +1,6 @@
 /// CLI module
 pub mod cliargs {
+    //use crate::buildah::b;
     use std::net::Ipv4Addr;
     use std::path::PathBuf;
     use structopt::StructOpt;
@@ -10,7 +11,6 @@ pub mod cliargs {
         about = "A container registry-like server",
         author = "Brian A Barnes-Cocke"
     )]
-
     pub struct Cli {
         ///Directory to serve containers from.
         #[structopt(short, long = "directory", parse(from_os_str), env = "JITREGISTRY_DIR")]
@@ -36,8 +36,8 @@ pub mod cliargs {
         pub bind_port: u16,
     }
 
-    /*mpl Cli {
-        fn dir_path_to_sub_dir_vec(&self) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    impl Cli {
+        /*        fn dir_path_to_sub_dir_vec(&self) -> Result<Vec<String>, Box<dyn std::error::Error>> {
             if self.directory_path.is_dir() {
                 std::fs::read_dir(self.directory_path)
                     .into_iter()
@@ -49,25 +49,27 @@ pub mod cliargs {
                     self.directory_path.clone()
                 ))?
             }
-        }
-            /// returns true if param is a dir, and contains an executable and/or dockerfile.
-
-        fn subdir_is_readable_contains_suitable(
-        path: Path,
-    ) -> Result<bool, Box<dyn std::error::Error>> {
-        if path.is_dir() {
-
-        } else {
-            Ok(false)
+        }*/
+        fn dont_error_out(&self) -> Result<bool, Box<dyn std::error::Error>> {
+            Ok(true)
         }
     }
-
-    }*/
-
     /// This wraps the Cli struct and produces Cli, or it will exit the program, with the very helpful structopt error message.
     pub fn cli_return_or_error_exit() -> Cli {
         match Cli::from_args_safe() {
-            Ok(x) => x,
+            Ok(x) => match x.dont_error_out() {
+                Ok(dont_stop_bool) => {
+                    if dont_stop_bool {
+                        x
+                    } else {
+                        std::process::exit(-1)
+                    }
+                }
+                Err(e) => {
+                    eprintln!("This is a high-level program error, no service has started. \n Error:{} \n Exiting...", e);
+                    std::process::exit(-1);
+                }
+            },
             Err(e) => {
                 eprintln!("{}", e);
                 std::process::exit(-1);
