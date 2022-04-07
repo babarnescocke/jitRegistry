@@ -1,6 +1,6 @@
 /// CLI module
 pub mod cliargs {
-    //use crate::buildah::b;
+    use crate::buildah::b;
     use std::net::Ipv4Addr;
     use std::path::PathBuf;
     use structopt::StructOpt;
@@ -35,44 +35,40 @@ pub mod cliargs {
         )]
         pub bind_port: u16,
     }
-
-    impl Cli {
-        /*        fn dir_path_to_sub_dir_vec(&self) -> Result<Vec<String>, Box<dyn std::error::Error>> {
-            if self.directory_path.is_dir() {
-                std::fs::read_dir(self.directory_path)
-                    .into_iter()
-                    .filter(|e| subdir_is_readable_contains_suitable(e))
-                    .collect()
-            } else {
-                Err(format!(
-                    "directory_path: {:?}, is not a directory",
-                    self.directory_path.clone()
-                ))?
-            }
-        }*/
-        fn dont_error_out(&self) -> Result<bool, Box<dyn std::error::Error>> {
-            Ok(true)
-        }
-    }
-    /// This wraps the Cli struct and produces Cli, or it will exit the program, with the very helpful structopt error message.
-    pub fn cli_return_or_error_exit() -> Cli {
+    /// Produces a Cli struct or exits. The errors from structopt are very informative, so they get passed completely.
+    pub fn new_Cli_or_exit() -> Cli {
         match Cli::from_args_safe() {
-            Ok(x) => match x.dont_error_out() {
-                Ok(dont_stop_bool) => {
-                    if dont_stop_bool {
-                        x
-                    } else {
-                        std::process::exit(-1)
-                    }
-                }
-                Err(e) => {
-                    eprintln!("This is a high-level program error, no service has started. \n Error:{} \n Exiting...", e);
-                    std::process::exit(-1);
-                }
-            },
+            Ok(x) => x,
             Err(e) => {
                 eprintln!("{}", e);
                 std::process::exit(-1);
+            }
+        }
+    }
+
+    /// Will be used to sanitize Cli, instantiate a couple things early in runtime and one day could integrate a configuration file(s).
+    #[derive(Debug)]
+    pub struct Args {
+        pub con_dir_path: PathBuf,
+        pub bind_addr: Ipv4Addr,
+        pub bind_port: u16,
+        pub buildah_dir: PathBuf,
+    }
+
+    impl Args {
+        pub fn args_or_exit() -> Self {
+            let ui = new_Cli_or_exit();
+            match b::buildah_graphroot() {
+                Ok(x) => Args {
+                    con_dir_path: ui.directory_path,
+                    bind_addr: ui.bind_addr,
+                    bind_port: ui.bind_port,
+                    buildah_dir: x,
+                },
+                Err(e) => {
+                    eprintln!("This is a high-level program error, no service has started. \n Error:{} \n Exiting...", e);
+                    std::process::exit(-2);
+                }
             }
         }
     }
