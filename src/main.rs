@@ -9,6 +9,7 @@ use oci_spec::image::ImageManifest;
 #[actix_web::main]
 async fn main() -> io::Result<()> {
     let arg = Args::args_or_exit();
+    dbg!(arg.clone());
     HttpServer::new(|| {
         App::new()
             .route("/containers", web::get().to(|| async { "Hello World!" }))

@@ -34,6 +34,7 @@ pub mod b {
             Err(format!("buildah error"))?
         }
     }
+
     /// Returns buildah's graphroot (where Build keeps relevant images, manifest) from `buildah info`. The performance characteristics are pretty bad, .07s to execute, vs roughly .03 for 'buildah info'. Needed to reliably return find image layers and manifests.
     // First we walk execute `sh -c buildah info` which gives the user-specific JSON response to how buildah is configured. (e.g. if this is run with different users, you will get different values.)
     // We only care about the json attribute at store.GraphRoot. We have to process the Result<Output>. I haven't tested but I think an error should be an exit condition...
@@ -71,7 +72,6 @@ pub mod b {
         }
         Err(error_string)?
     }
-
     fn vec_u8_to_last_line(v: &[u8]) -> String {
         //let mut index: usize = 0;
         //for (i, y) in v.iter().enumerate() {

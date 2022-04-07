@@ -47,7 +47,7 @@ pub mod cliargs {
     }
 
     /// Will be used to sanitize Cli, instantiate a couple things early in runtime and one day could integrate a configuration file(s).
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct Args {
         pub con_dir_path: PathBuf,
         pub bind_addr: Ipv4Addr,
