@@ -3,6 +3,7 @@ pub mod b {
     use serde_json::{from_str, Value};
     use std::path::PathBuf;
     use std::process::Command;
+    use walkdir::WalkDir;
 
     /// Posix compliant `command -v` to find buildah in path. Ideally, we would like users to specify path as well.
     /// I am not sure why but, command -v fails without sh -c.
@@ -32,7 +33,7 @@ pub mod b {
             ))
             .output()?;
         if output.status.code().unwrap() == 0 {
-            Ok(String::from_utf8(output.stdout)?)
+            Ok(vec_u8_to_last_line(&output.stdout)?)
         } else {
             Err(format!("buildah error"))?
         }
@@ -48,7 +49,7 @@ pub mod b {
             ))
             .output()?;
         if output.status.code().unwrap() == 0 {
-            Ok(vec_u8_to_last_line(&output.stdout[..]))
+            Ok(vec_u8_to_last_line(&output.stdout[..])?.to_string())
         } else {
             Err(format!("buildah error"))?
         }
@@ -91,12 +92,64 @@ pub mod b {
         }
         Err(error_string)?
     }
-    fn vec_u8_to_last_line(v: &[u8]) -> String {
-        String::from_utf8(v.to_vec()).unwrap()
+
+    fn vec_u8_to_last_line(v: &[u8]) -> Result<String, Box<dyn std::error::Error>> {
+        let zero = std::str::from_utf8(v)?;
+        let lines = zero.lines();
+        let mut tstring: String = String::from("");
+        for l in lines {
+            println!("{}", l.clone());
+            tstring = l.to_string();
+        }
+        Ok(tstring)
     }
-    pub fn path_to_image_manifest(p: PathBuf) -> Result<ImageManifest, Box<dyn std::error::Error>> {
-        Ok(ImageManifest::from_file("manifest.json")?)
+
+    /// At time of this writing, pathbuf doesn't have a try_exists in stable -so we are just going to use exists for now, it obviously flattens errors
+    fn PathBuf_has_sub_dir(pb: &mut PathBuf, sd: &str) -> bool {
+        pb.push(sd);
+        pb.is_dir()
     }
+
+    /// takes a PathBuf and says we either have an executable buildah script script, dockerfile/containerfile or an error
+    pub fn pathbuf_to_actionable_buildah_path(
+        pb: &PathBuf,
+        sd: &str,
+    ) -> Result<(Option<PathBuf>, Option<PathBuf>), Box<dyn std::error::Error>> {
+        if PathBuf_has_sub_dir(&mut (pb.clone()), sd.clone()) {
+            let mut path = pb.clone();
+            path.push(sd);
+            for f in WalkDir::new(path.clone()).max_depth(1) {
+                let F = f?;
+                let E = F.clone();
+                let metadata = (F.clone()).metadata()?;
+                if metadata.is_file() {
+                    let testr: &str = E.file_name().to_str().unwrap();
+                    let testrclone0 = testr.clone();
+                    let testrclone1 = testr.clone();
+                    if testrclone0.starts_with("Dockerfile")
+                        || testrclone1.starts_with("Containerfile")
+                    {
+                        return Ok((None, Some(path)));
+                    } else if testr.ends_with("sh") {
+                        return Ok((Some(F.into_path()), None));
+                    }
+                }
+            }
+        }
+        Err(format!("Cannot find a subdirectory for path: {:?}", pb))?
+    }
+
+    pub fn hash_to_manifest(
+        h: &str,
+        bp: &mut PathBuf,
+    ) -> Result<ImageManifest, Box<dyn std::error::Error>> {
+        Ok(ImageManifest::from_file(PathBuf::from(format!(
+            "{}/overlay-images/{}/manifest",
+            bp.to_string_lossy(),
+            h
+        )))?)
+    }
+
     /*/// To help delineate options and settings.
     pub struct BuildahOptions {
         build_type: BuildBuildFromTargets,

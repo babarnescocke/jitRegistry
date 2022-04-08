@@ -1,7 +1,7 @@
 [package]
 name = "jitRegistry"
 description = "a container registry-like solution"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["Brian A Barnes-Cocke <bababarnescocke@gmail.com>"]
 edition = "2021"
 homepage = "https://github.com/babarnescocke/jitRegistry"
