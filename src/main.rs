@@ -4,13 +4,13 @@ use crate::buildah::b::{
     pathbuf_to_actionable_buildah_path,
 };
 use crate::clilib::cliargs::{Args, WA};
-use actix_web::{get, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
+use actix_web::{get, http::header, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use std::io;
 pub mod buildah;
 pub mod clilib;
 
 #[actix_web::main]
-async fn main() -> io::Result<()> {
+async fn main() -> std::result::Result<(), io::Error> {
     let arg = Args::args_or_exit();
     let wa: web::Data<WA> = arg.args_to_data_wa();
     HttpServer::new(move || {
@@ -24,6 +24,7 @@ async fn main() -> io::Result<()> {
     .await
 }
 
+/// This gets pinged by podman when pulling an image, to verify this is compliant with OCI spec v2.
 #[get("/v2/")]
 async fn light_is_on() -> impl Responder {
     HttpResponse::Ok().body("")
@@ -35,6 +36,7 @@ async fn buildah_build(name: web::Path<String>, data: web::Data<WA>) -> impl Res
     let (buildah_script_opt, somefile_opt) =
         pathbuf_to_actionable_buildah_path(&data.con_dir_path, &name).expect("Cannot Access Path");
     let mut hash = String::from("");
+
     match buildah_script_opt {
         Some(x) => hash = buildah_unshare_build(&x).expect("buildah error"),
         None => {}
@@ -46,6 +48,9 @@ async fn buildah_build(name: web::Path<String>, data: web::Data<WA>) -> impl Res
     if !hash.eq("") {
         let mut clone = (&data.buildah_dir).clone();
         let ret = hash_to_manifest(&hash, &mut clone).expect("something good");
+        let clone = ret.clone();
+        dbg!(clone);
+        // need to use this https://docs.rs/oci-spec/0.5.5/src/oci_spec/image/mod.rs.html#60 to get correct json info.
         HttpResponse::Ok().body(serde_json::to_string(&ret).unwrap())
     } else {
         HttpResponse::UnsupportedMediaType().body("something_not good")
