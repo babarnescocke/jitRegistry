@@ -1,7 +1,9 @@
 pub mod b {
+    use oci_spec::image::ImageManifest;
     use serde_json::{from_str, Value};
     use std::path::PathBuf;
     use std::process::Command;
+
     /// Posix compliant `command -v` to find buildah in path. Ideally, we would like users to specify path as well.
     /// I am not sure why but, command -v fails without sh -c.
     pub fn buildah_command_in_path() -> Result<bool, Box<dyn std::error::Error>> {
@@ -24,9 +26,26 @@ pub mod b {
     pub fn buildah_unshare_build(path: &PathBuf) -> Result<String, Box<dyn std::error::Error>> {
         let output = Command::new("sh")
             .arg("-c")
-            .arg("buildah")
-            .arg("unshare")
-            .arg(path.canonicalize()?.to_str().unwrap())
+            .arg(format!(
+                "buildah unshare {}",
+                path.canonicalize()?.to_str().unwrap()
+            ))
+            .output()?;
+        if output.status.code().unwrap() == 0 {
+            Ok(String::from_utf8(output.stdout)?)
+        } else {
+            Err(format!("buildah error"))?
+        }
+    }
+    pub fn buildah_dockerconatinerfile_build(
+        path: &PathBuf,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        let output = Command::new("sh")
+            .arg("-c")
+            .arg(format!(
+                "buildah bud -t {}",
+                path.canonicalize()?.to_str().unwrap()
+            ))
             .output()?;
         if output.status.code().unwrap() == 0 {
             Ok(vec_u8_to_last_line(&output.stdout[..]))
@@ -73,14 +92,10 @@ pub mod b {
         Err(error_string)?
     }
     fn vec_u8_to_last_line(v: &[u8]) -> String {
-        //let mut index: usize = 0;
-        //for (i, y) in v.iter().enumerate() {
-        //    if (*y).contains(b"\n") {
-        //        index = i;
-        //    }
-        //    let (_, last_line) = v.split_at(index);
-        String::from("not_string")
-        //}
+        String::from_utf8(v.to_vec()).unwrap()
+    }
+    pub fn path_to_image_manifest(p: PathBuf) -> Result<ImageManifest, Box<dyn std::error::Error>> {
+        Ok(ImageManifest::from_file("manifest.json")?)
     }
     /*/// To help delineate options and settings.
     pub struct BuildahOptions {

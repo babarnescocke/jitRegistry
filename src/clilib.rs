@@ -1,6 +1,7 @@
 /// CLI module
 pub mod cliargs {
     use crate::buildah::b;
+    use actix_web::web;
     use std::net::Ipv4Addr;
     use std::path::PathBuf;
     use structopt::StructOpt;
@@ -56,6 +57,7 @@ pub mod cliargs {
     }
 
     impl Args {
+        /// Pretty early on I want to exit if there is an error; This makes a new Args or exits on error.
         pub fn args_or_exit() -> Self {
             let ui = new_Cli_or_exit();
             match b::buildah_graphroot() {
@@ -69,6 +71,23 @@ pub mod cliargs {
                     eprintln!("This is a high-level program error, no service has started. \n Error:{} \n Exiting...", e);
                     std::process::exit(-2);
                 }
+            }
+        }
+        pub fn args_to_data_wa(&self) -> web::Data<WA> {
+            web::Data::new(WA::new(self.con_dir_path.clone(), self.buildah_dir.clone()))
+        }
+    }
+
+    #[derive(Debug, Clone)]
+    pub struct WA {
+        pub con_dir_path: PathBuf,
+        pub buildah_dir: PathBuf,
+    }
+    impl WA {
+        pub fn new(cdp: PathBuf, bp: PathBuf) -> Self {
+            WA {
+                con_dir_path: cdp,
+                buildah_dir: bp,
             }
         }
     }
