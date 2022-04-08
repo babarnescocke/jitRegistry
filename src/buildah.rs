@@ -98,7 +98,6 @@ pub mod b {
         let lines = zero.lines();
         let mut tstring: String = String::from("");
         for l in lines {
-            println!("{}", l.clone());
             tstring = l.to_string();
         }
         Ok(tstring)

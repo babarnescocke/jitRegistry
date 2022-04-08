@@ -13,14 +13,24 @@ pub mod clilib;
 async fn main() -> io::Result<()> {
     let arg = Args::args_or_exit();
     let wa: web::Data<WA> = arg.args_to_data_wa();
-    HttpServer::new(move || App::new().app_data(wa.to_owned()).service(buildah_build))
-        .bind((arg.bind_addr, arg.bind_port))?
-        .run()
-        .await
+    HttpServer::new(move || {
+        App::new()
+            .app_data(wa.to_owned())
+            .service(buildah_build)
+            .service(light_is_on)
+    })
+    .bind((arg.bind_addr, arg.bind_port))?
+    .run()
+    .await
+}
+
+#[get("/v2/")]
+async fn light_is_on() -> impl Responder {
+    HttpResponse::Ok().body("")
 }
 
 /// Service takes a pull manifest request, per https://github.com/opencontainers/distribution-spec/blob/main/spec.md#pulling-manifests
-#[get("/v2/{name}/manifest/latest")]
+#[get("/v2/{name}/manifests/latest")]
 async fn buildah_build(name: web::Path<String>, data: web::Data<WA>) -> impl Responder {
     let (buildah_script_opt, somefile_opt) =
         pathbuf_to_actionable_buildah_path(&data.con_dir_path, &name).expect("Cannot Access Path");
