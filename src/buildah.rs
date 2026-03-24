@@ -149,13 +149,46 @@ pub mod b {
         )))?)
     }
 
-    /*/// To help delineate options and settings.
-    pub struct BuildahOptions {
-        build_type: BuildBuildFromTargets,
+    /// Exports a built image to an OCI image layout directory using `buildah push`.
+    /// The resulting layout at `{output_dir}/{name}/` contains a standard `blobs/sha256/` directory.
+    pub fn buildah_push_to_oci_layout(
+        hash: &str,
+        output_dir: &PathBuf,
+        name: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let dest = format!(
+            "oci:{}:latest",
+            output_dir.join(name).to_string_lossy()
+        );
+        let output = Command::new("sh")
+            .arg("-c")
+            .arg(format!("buildah push {} {}", hash, dest))
+            .output()?;
+        if output.status.code().unwrap() == 0 {
+            Ok(())
+        } else {
+            let stderr = std::str::from_utf8(&output.stderr).unwrap_or("unknown error");
+            Err(format!("buildah push error: {}", stderr))?
+        }
     }
-    /// Enum of different build options.
-    pub enum BuildahBuildFromTargets {
-        Oci,
-        Dockerfile,
-    }*/
+
+    /// Reads the OCI layout index.json to find the manifest digest.
+    /// Returns the digest string (e.g. "sha256:abc123...").
+    pub fn read_oci_index_manifest_digest(
+        output_dir: &PathBuf,
+        name: &str,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        let index_path = output_dir.join(name).join("index.json");
+        let contents = std::fs::read_to_string(&index_path)?;
+        let index: Value = from_str(&contents)?;
+        let digest = index["manifests"][0]["digest"]
+            .as_str()
+            .ok_or("No manifest digest found in index.json")?;
+        Ok(digest.to_string())
+    }
+
+    /// Returns the filesystem path for a blob given its digest.
+    pub fn blob_path(output_dir: &PathBuf, name: &str, digest_hex: &str) -> PathBuf {
+        output_dir.join(name).join("blobs").join("sha256").join(digest_hex)
+    }
 }

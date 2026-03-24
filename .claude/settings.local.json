@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /code/jitRegistry -not -path */target/* -not -path */.git/*)",
+      "Bash(cargo check:*)"
+    ]
+  }
+}

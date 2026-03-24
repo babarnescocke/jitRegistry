@@ -35,6 +35,15 @@ pub mod cliargs {
             env = "JITREGISTRY_BIND_PORT"
         )]
         pub bind_port: u16,
+
+        /// Directory for OCI layout cache (where built images are exported for serving).
+        #[structopt(
+            short = "C",
+            long = "cache-dir",
+            parse(from_os_str),
+            env = "JITREGISTRY_CACHE_DIR"
+        )]
+        pub cache_dir: Option<PathBuf>,
     }
     /// Produces a Cli struct or exits. The errors from structopt are very informative, so they get passed completely.
     pub fn new_Cli_or_exit() -> Cli {
@@ -54,6 +63,7 @@ pub mod cliargs {
         pub bind_addr: Ipv4Addr,
         pub bind_port: u16,
         pub buildah_dir: PathBuf,
+        pub oci_cache_dir: PathBuf,
     }
 
     impl Args {
@@ -61,12 +71,25 @@ pub mod cliargs {
         pub fn args_or_exit() -> Self {
             let ui = new_Cli_or_exit();
             match b::buildah_graphroot() {
-                Ok(x) => Args {
-                    con_dir_path: ui.directory_path,
-                    bind_addr: ui.bind_addr,
-                    bind_port: ui.bind_port,
-                    buildah_dir: x,
-                },
+                Ok(x) => {
+                    let cache_dir = ui.cache_dir.unwrap_or_else(|| {
+                        let mut cd = x.clone();
+                        cd.pop(); // go up from graphroot
+                        cd.push("jitregistry-cache");
+                        cd
+                    });
+                    std::fs::create_dir_all(&cache_dir).unwrap_or_else(|e| {
+                        eprintln!("Cannot create cache directory {:?}: {}", cache_dir, e);
+                        std::process::exit(-3);
+                    });
+                    Args {
+                        con_dir_path: ui.directory_path,
+                        bind_addr: ui.bind_addr,
+                        bind_port: ui.bind_port,
+                        buildah_dir: x,
+                        oci_cache_dir: cache_dir,
+                    }
+                }
                 Err(e) => {
                     eprintln!("This is a high-level program error, no service has started. \n Error:{} \n Exiting...", e);
                     std::process::exit(-2);
@@ -74,7 +97,11 @@ pub mod cliargs {
             }
         }
         pub fn args_to_data_wa(&self) -> web::Data<WA> {
-            web::Data::new(WA::new(self.con_dir_path.clone(), self.buildah_dir.clone()))
+            web::Data::new(WA::new(
+                self.con_dir_path.clone(),
+                self.buildah_dir.clone(),
+                self.oci_cache_dir.clone(),
+            ))
         }
     }
 
@@ -82,12 +109,14 @@ pub mod cliargs {
     pub struct WA {
         pub con_dir_path: PathBuf,
         pub buildah_dir: PathBuf,
+        pub oci_cache_dir: PathBuf,
     }
     impl WA {
-        pub fn new(cdp: PathBuf, bp: PathBuf) -> Self {
+        pub fn new(cdp: PathBuf, bp: PathBuf, ocd: PathBuf) -> Self {
             WA {
                 con_dir_path: cdp,
                 buildah_dir: bp,
+                oci_cache_dir: ocd,
             }
         }
     }
